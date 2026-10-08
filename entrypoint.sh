@@ -30,10 +30,15 @@ shutdown() {
 }
 trap shutdown INT TERM
 
-# Panel console lines are executed as T-SQL against the local instance
-while IFS= read -r line; do
+# Panel console lines are executed as T-SQL against the local instance. In the
+# background, so the container lives exactly as long as SQL Server does: a
+# server that fails to start must exit, or Wings shows "starting" for ever.
+# stdin is passed explicitly; a background job would otherwise get /dev/null.
+exec 3<&0
+while IFS= read -r line <&3; do
     [ -z "$line" ] && continue
     "$SQLCMD" -S "127.0.0.1,${MSSQL_TCP_PORT}" -U sa -C -Q "$line" || true
-done
+done &
 
 wait "$PID"
+exit $?
