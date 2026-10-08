@@ -5,6 +5,16 @@ FROM mcr.microsoft.com/mssql/server:2022-latest
 ARG CONTAINER_UID=988
 
 USER root
+
+# sqlservr ships with the file capability cap_net_bind_service. Wings drops
+# that capability from every container, and the kernel refuses to exec a
+# binary whose file caps exceed the bounding set: "Operation not permitted".
+# Rewriting each file drops the security.capability xattr; ports above 1024
+# need no privilege anyway.
+RUN find /opt/mssql /opt/mssql-tools* -type f -perm -u+x 2>/dev/null | while read -r f; do \
+      cp "$f" "$f.nocap" && chmod --reference="$f" "$f.nocap" && mv -f "$f.nocap" "$f"; \
+    done
+
 RUN useradd -m -u ${CONTAINER_UID} -d /home/container -s /bin/bash container \
  && rm -rf /var/opt/mssql \
  && ln -s /home/container/mssql /var/opt/mssql

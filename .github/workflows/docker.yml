@@ -31,6 +31,44 @@ jobs:
             type=raw,value=2022
             type=sha
 
+      - name: Build for test
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64
+          load: true
+          tags: mssql-test:ci
+
+      # Boot it the way Wings does: its uid, its dropped capabilities,
+      # no-new-privileges, a tty, and a startup line prefixed the way the
+      # Renode panel prefixes it. Nothing is pushed unless SQL Server gets
+      # to "ready" and answers a query.
+      - name: Boot test
+        run: |
+          mkdir -p /tmp/vol && sudo chown 988:988 /tmp/vol
+          STARTUP=': renode_banner_begin; if [ -n "$RENODE_BANNER" ]; then printf "%s" "$RENODE_BANNER" | base64 -d 2>/dev/null || true; fi; : renode_banner_end; /opt/mssql/bin/sqlservr'
+          docker run -d -t -i --name ci --user 988:988 \
+            --cap-drop setpcap --cap-drop mknod --cap-drop audit_write --cap-drop net_raw \
+            --cap-drop dac_override --cap-drop fowner --cap-drop fsetid --cap-drop net_bind_service \
+            --cap-drop sys_chroot --cap-drop setfcap --security-opt no-new-privileges \
+            --memory 2304m -v /tmp/vol:/home/container \
+            -e ACCEPT_EULA=Y -e MSSQL_PID=Express -e MSSQL_SA_PASSWORD=Ci0Test0Passw0rdXyz \
+            -e SERVER_PORT=25721 -e RENODE_BANNER="$(printf 'RENODE BANNER OK\n' | base64)" \
+            -e STARTUP="$STARTUP" mssql-test:ci
+          for i in $(seq 1 90); do
+            docker logs ci 2>&1 | grep -q 'SQL Server is now ready for client connections' && break
+            docker inspect -f '{{.State.Running}}' ci | grep -q true || break
+            sleep 2
+          done
+          docker logs ci 2>&1 | tail -40
+          docker logs ci 2>&1 | grep -q 'RENODE BANNER OK'
+          docker logs ci 2>&1 | grep -q 'SQL Server is now ready for client connections'
+          docker exec ci /opt/mssql-tools18/bin/sqlcmd -S 127.0.0.1,25721 -U sa -P Ci0Test0Passw0rdXyz -C -Q 'SELECT @@VERSION'
+          docker kill --signal INT ci
+          for i in $(seq 1 30); do docker inspect -f '{{.State.Running}}' ci | grep -q false && break; sleep 1; done
+          docker logs ci 2>&1 | tail -5
+          docker inspect -f 'exit={{.State.ExitCode}} running={{.State.Running}}' ci
+
       - uses: docker/build-push-action@v6
         with:
           context: .
