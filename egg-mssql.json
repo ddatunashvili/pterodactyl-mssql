@@ -22,7 +22,7 @@
     },
     "scripts": {
         "installation": {
-            "script": "#!/bin/bash\r\nmkdir -p /mnt/server/mssql\r\necho \"Install complete. SQL Server initialises its system databases on first start.\"",
+            "script": "#!/bin/bash\nmkdir -p /mnt/server/mssql\necho \"Install complete. SQL Server initialises its system databases on first start.\"",
             "container": "ghcr.io/pterodactyl/installers:debian",
             "entrypoint": "bash"
         }
