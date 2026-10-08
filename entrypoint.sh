@@ -38,7 +38,7 @@ provision() {
     local db="${MSSQL_DATABASE:-}"
     [ -z "$db" ] && return 0
     if ! [[ "$db" =~ ^[A-Za-z][A-Za-z0-9_]{0,63}$ ]]; then
-        echo "[renode] MSSQL_DATABASE '${db}' is not a plain name (letters, digits, _); not created."
+        echo "Renode: MSSQL_DATABASE '${db}' is not a plain name (letters, digits, _); not created."
         return 0
     fi
     for _ in $(seq 1 150); do
@@ -51,11 +51,11 @@ IF DB_ID(N'${db}') IS NULL
 BEGIN
     CREATE DATABASE [${db}];
     ALTER LOGIN [sa] WITH DEFAULT_DATABASE = [${db}];
-    PRINT '[renode] Created database ${db} (default database for sa).';
+    PRINT 'Renode: Created database ${db} (default database for sa).';
 END
 ELSE
-    PRINT '[renode] Database ${db} is ready.';" \
-        || echo "[renode] Could not create database ${db}: was the sa password changed with ALTER LOGIN?"
+    PRINT 'Renode: Database ${db} is ready.';" \
+        || echo "Renode: Could not create database ${db}: was the sa password changed with ALTER LOGIN?"
 }
 provision &
 
