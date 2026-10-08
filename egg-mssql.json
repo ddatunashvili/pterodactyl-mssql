@@ -1,0 +1,72 @@
+{
+    "_comment": "DO NOT EDIT: FILE GENERATED AUTOMATICALLY BY PTERODACTYL PANEL - PTERODACTYL.IO",
+    "meta": {
+        "version": "PTDL_v2",
+        "update_url": null
+    },
+    "exported_at": "2026-10-08T00:00:00+00:00",
+    "name": "Microsoft SQL Server 2022",
+    "author": "404frieds@gmail.com",
+    "description": "Microsoft SQL Server 2022 on Linux. Console input runs as T-SQL via sqlcmd. Requires at least 2048 MB RAM.",
+    "features": null,
+    "docker_images": {
+        "MSSQL 2022": "ghcr.io/ddatunashvili/pterodactyl-mssql:2022"
+    },
+    "file_denylist": [],
+    "startup": "/opt/mssql/bin/sqlservr",
+    "config": {
+        "files": "{}",
+        "startup": "{\r\n    \"done\": \"SQL Server is now ready for client connections\"\r\n}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\r\nmkdir -p /mnt/server/mssql\r\necho \"Install complete. SQL Server initialises its system databases on first start.\"",
+            "container": "ghcr.io/pterodactyl/installers:debian",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Accept EULA",
+            "description": "Set to Y to accept the Microsoft SQL Server EULA (https://go.microsoft.com/fwlink/?LinkId=746388).",
+            "env_variable": "ACCEPT_EULA",
+            "default_value": "N",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:Y,N",
+            "field_type": "text"
+        },
+        {
+            "name": "SA Password",
+            "description": "Password for the sa login. Min 8 chars, must contain 3 of: uppercase, lowercase, digits, symbols. Only applied on first start; change later with ALTER LOGIN.",
+            "env_variable": "MSSQL_SA_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|min:8|max:128",
+            "field_type": "text"
+        },
+        {
+            "name": "Edition",
+            "description": "Developer, Express, Standard, Enterprise, EnterpriseCore, Evaluation, or a product key. Developer is not licensed for production; Express is free for production.",
+            "env_variable": "MSSQL_PID",
+            "default_value": "Express",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:64",
+            "field_type": "text"
+        },
+        {
+            "name": "Collation",
+            "description": "Server collation. Only applied when system databases are first created.",
+            "env_variable": "MSSQL_COLLATION",
+            "default_value": "SQL_Latin1_General_CP1_CI_AS",
+            "user_viewable": true,
+            "user_editable": false,
+            "rules": "required|string|max:128",
+            "field_type": "text"
+        }
+    ]
+}
