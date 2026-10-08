@@ -30,6 +30,35 @@ shutdown() {
 }
 trap shutdown INT TERM
 
+# The customer's own database, created once SQL Server answers, and made sa's
+# default so SSMS opens straight into it. Idempotent: an existing database is
+# left alone, so this runs on every start. The name goes into T-SQL, so it is
+# checked against a strict identifier shape first rather than quoted.
+provision() {
+    local db="${MSSQL_DATABASE:-}"
+    [ -z "$db" ] && return 0
+    if ! [[ "$db" =~ ^[A-Za-z][A-Za-z0-9_]{0,63}$ ]]; then
+        echo "[renode] MSSQL_DATABASE '${db}' is not a plain name (letters, digits, _); not created."
+        return 0
+    fi
+    for _ in $(seq 1 150); do
+        "$SQLCMD" -S "127.0.0.1,${MSSQL_TCP_PORT}" -U sa -C -b -l 2 -Q "SELECT 1" >/dev/null 2>&1 && break
+        kill -0 "$PID" 2>/dev/null || return 0
+        sleep 2
+    done
+    "$SQLCMD" -S "127.0.0.1,${MSSQL_TCP_PORT}" -U sa -C -b -h -1 -Q "SET NOCOUNT ON;
+IF DB_ID(N'${db}') IS NULL
+BEGIN
+    CREATE DATABASE [${db}];
+    ALTER LOGIN [sa] WITH DEFAULT_DATABASE = [${db}];
+    PRINT '[renode] Created database ${db} (default database for sa).';
+END
+ELSE
+    PRINT '[renode] Database ${db} is ready.';" \
+        || echo "[renode] Could not create database ${db}: was the sa password changed with ALTER LOGIN?"
+}
+provision &
+
 # Panel console lines are executed as T-SQL against the local instance. In the
 # background, so the container lives exactly as long as SQL Server does: a
 # server that fails to start must exit, or Wings shows "starting" for ever.

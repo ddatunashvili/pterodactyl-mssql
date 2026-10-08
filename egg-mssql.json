@@ -49,6 +49,16 @@
             "field_type": "text"
         },
         {
+            "name": "Database Name",
+            "description": "Your database. Created on first start and made the sa login's default database, so SSMS opens straight into it. Changing it creates a new, empty database next start; the old one stays.",
+            "env_variable": "MSSQL_DATABASE",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": false,
+            "rules": "required|string|regex:/^[A-Za-z][A-Za-z0-9_]{0,63}$/",
+            "field_type": "text"
+        },
+        {
             "name": "Edition",
             "description": "Developer, Express, Standard, Enterprise, EnterpriseCore, Evaluation, or a product key. Developer is not licensed for production; Express is free for production.",
             "env_variable": "MSSQL_PID",
